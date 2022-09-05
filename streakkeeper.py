@@ -1,6 +1,9 @@
 import time
-import csv
+import traceback
+
 from process import humanizer
+from data.data_storage import DataStorage
+
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -8,70 +11,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import WebDriverException
 
-class Account (object):
-    def __init__ (self, username, password):
-        self.username = username
-        self.password = password
-
-class DataStorage (object):
-    def __init__ (self, new_language, primary_language="english"):
-        self.sentence_dictionary = dict()
-        self.sentence_dictionary[primary_language] = dict()
-        self.sentence_dictionary[new_language] = dict()
-
-        with open(new_language + '/answers_sentences.csv', 'r') as answers_file:
-            reader = csv.reader(answers_file)
-            for row in reader:
-                self.sentence_dictionary[primary_language][row[0]] = row[1]
-                self.sentence_dictionary[new_language][row[0]] = row[1]
-
-        with open(new_language + '/answers_other.csv', 'r') as answers_file:
-            reader = csv.reader(answers_file)
-            for row in reader:
-                self.other_dictionary[row[0]] = row[1:]
-
-    def add_sentence(self, sentence, translation, origin_language):
-        a, b = self.primary_language, self.new_language
-        if origin_language != a:
-            a, b = b, a
-        self.sentence_dictionary[a][sentence] = translation
-        self.sentence_dictionary[b][translation] = sentence
-
-    def add_other(self, prompt, answer):
-        self.other_dictionary[prompt].append(answer)
-
-    def write_sentences(self):
-        with open(self.new_language + '/answers_sentences.csv', 'w') as answers_file:
-            writer = csv.writer(answers_file)
-            writer.writerows(self.sentence_dictionary[self.primary_language].items())
-
-    def write_other(self):
-        with open(self.new_language + '/answers_other.csv', 'w') as answers_file:
-            writer = csv.writer(answers_file)
-            for key, answers in self.other_dictionary.items():
-                writer.writerow([key] + answers)
-
-
 class Duolingo (object):
-    def __init__ (self):
+    def __init__ (self, learning_language, known_language='english', humanize=False):
         self.browser = webdriver.Safari()
+        self.data = DataStorage(learning_language)
+
+        self.LEARNING_LANGUAGE = learning_language
+        self.KNOWN_LANGUAGE = known_language
+        self.HUMANIZE = humanize
+
         self.browser.maximize_window()
-        self.gold_class = '_3dqWQ'
-        self.dictionary = dict()
 
-        with open('high_valyrian/answers.csv', 'r') as answers_file:
-            reader = csv.reader(answers_file)
-            for row in reader:
-                self.dictionary[row[0]] = row[1]
-
-        with open('high_valyrian/current_skill.txt', 'r') as current_skill_file:
-            file_content = current_skill_file.readline().strip()
-            if file_content != '':
-                self.current_skill = int(file_content)
-            else:
-                self.current_skill = 0
-
-    def log_in(self, account):
+    def log_in(self, username, password):
 
         have_account = WebDriverWait(self.browser, 10).until(
             EC.presence_of_element_located(
@@ -87,11 +38,11 @@ class Duolingo (object):
 
         time.sleep(1)
 
-        email_field.send_keys(account.username)
+        email_field.send_keys(username)
 
         password_field = self.browser.find_element(By.XPATH,
                                              '//input[@data-test="password-input"]')
-        password_field.send_keys(account.password)
+        password_field.send_keys(password)
 
         login_button = self.browser.find_element(By.XPATH,
                                            '//button[@data-test="register-button"]')
@@ -107,7 +58,7 @@ class Duolingo (object):
 
     def use_keyboard (self):
         try:
-            button = WebDriverWait(self.browser, .2).until(
+            button = WebDriverWait(self.browser, 1).until(
                 EC.presence_of_element_located(
                     (By.XPATH, '//button[@data-test="player-toggle-keyboard"]'))
             )
@@ -134,28 +85,24 @@ class Duolingo (object):
 
         session.complete_skill(0, 1)
 
-    def is_near_finished(self, skill):
+    def will_be_finished(self, skill):
         try:
             level_text = skill.find_element(By.CSS_SELECTOR, 'div._1m77f').text
-            print(level_text)
+            if level_text == 'Legendary Level':
+                return True
+
+            # Level 4/6
             fraction_1 = level_text.split(' ')[1]
             fraction_1_array = fraction_1.split('/')
-            is_on_last_lesson = (fraction_1_array[0] == '5' and fraction_1_array[1] == '6') or  (fraction_1_array[0] == fraction_1_array[1])
+            is_on_last_level = int(fraction_1_array[0]) + 2 == int(fraction_1_array[1])
 
+            # Lesson 4/5
             lesson_text = skill.find_element(By.CSS_SELECTOR, 'div.RXDIm').text
             fraction_2 = lesson_text.split(' ')[1]
             fraction_2_array = fraction_2.split('/')
-            is_on_last_level = int(fraction_2_array[1]) == int(fraction_2[0]) + 1
+            is_on_last_lesson = int(fraction_2_array[0]) + 1 == int(fraction_2_array[1])
 
             return is_on_last_level and is_on_last_lesson
-        except WebDriverException:
-            return False
-
-
-    def is_finished(self, skill):
-        try:
-            skill.find_element(By.CLASS_NAME, self.gold_class)
-            return True
         except WebDriverException:
             return False
 
@@ -180,31 +127,57 @@ class Duolingo (object):
     def find_xp_gain(self, start_button):
         return int(start_button.text.split(' ')[1])
 
+    def find_prompt_language(self):
+        prompt = WebDriverWait(session.browser, 1).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[data-test="challenge-header"]'))).text
+        assert prompt[:14] == 'Write this in ', 'Unusual translation prompt'
+        language = prompt[14:].replace(' ', '_').lower()
+        if language == self.KNOWN_LANGUAGE:
+            return self.LEARNING_LANGUAGE
+        elif language == self.LEARNING_LANGUAGE:
+            return self.KNOWN_LANGUAGE
+        else:
+            raise Exception('unknown language prompted for translation')
+
+    def get_misc_answer(self, prompt):
+        self.skip()
+        solution = WebDriverWait(self.browser, 2).until(EC.presence_of_element_located((By.XPATH, '//div[@class="_1UqAr _3Qruy"]'))).text
+
+        self.data.add_other(prompt, solution)
+
     def save(self):
         print("Closing files")
 
-        with open('high_valyrian/answers.csv', 'w') as answers_file:
-            writer = csv.writer(answers_file)
-            writer.writerows(self.dictionary.items())
+        self.data.write_sentences()
+        self.data.write_other()
 
-        with open('high_valyrian/current_skill.txt', 'w') as current_skill_file:
-            current_skill_file.write(str(self.current_skill))
+        self.data.write_current_skill()
 
-    def challenge_translate(self, skill_level, course_percentage):
+    def challenge_translate(self, skill_level, course_percentage, reverse=False):
 
         sentence = self.browser.find_element(By.XPATH, '//div[@class="_1KUxv _11rtD"]').text
-        sentence += " (t)"
+        if not reverse:
+            sentence_language = self.find_prompt_language()
+            is_known_language = sentence_language == self.KNOWN_LANGUAGE
+        else:
+            print(sentence)
+            sentence_language = self.KNOWN_LANGUAGE
+            is_known_language = True
 
-        if sentence in self.dictionary:
-            self.use_keyboard()
+        if sentence in self.data.sentence_dictionary[sentence_language]:
 
-            input_field = self.browser.find_element(By.XPATH,
-                                              '//textarea[@data-test="challenge-translate-input"]')
+            try:
+                input_field = self.browser.find_element(By.XPATH,'//textarea[@data-test="challenge-translate-input"]')
+            except WebDriverException:
+                self.use_keyboard()
+                input_field = self.browser.find_element(By.XPATH,'//textarea[@data-test="challenge-translate-input"]')
 
-            answer = self.dictionary[sentence]
-            processed_answer, wait_time = humanizer(answer, skill_level, course_percentage, 'translate')
-            time.sleep(wait_time)
-            input_field.send_keys(processed_answer)
+            answer = self.data.sentence_dictionary[sentence_language][sentence]
+            if self.HUMANIZE:
+                processed_answer, wait_time = humanizer(answer, is_known_language, 'translate', skill_level, course_percentage)
+                time.sleep(wait_time)
+                input_field.send_keys(processed_answer)
+            else:
+                input_field.send_keys(answer)
             input_field.send_keys(Keys.RETURN)
 
         else:
@@ -216,7 +189,10 @@ class Duolingo (object):
             if (self.alt_solution_check(solution)):
                 solution = solution[17:]
 
-            self.dictionary[sentence] = solution
+
+            if reverse:
+                print(sentence, solution, sentence_language)
+            self.data.add_sentence(sentence, solution, sentence_language)
 
         self.go_next()
 
@@ -224,20 +200,19 @@ class Duolingo (object):
         sentence = self.browser.find_element(By.XPATH,
                                        '//h1[@data-test="challenge-header"]').text
         sentence += " (s)"
-        if sentence in self.dictionary:
+        if sentence in self.data.other_dictionary:
             choices = self.browser.find_elements(By.XPATH, '//span[@class="HaQTI"]')
 
+            answer_found = False
             for choice in choices:
-                if choice.text == self.dictionary[sentence]:
+                if choice.text in self.data.other_dictionary[sentence]:
+                    answer_found = True
                     choice.click()
+            if not answer_found:
+                self.get_misc_answer(sentence)
 
         else:
-            self.skip()
-
-            solution = self.browser.find_element(By.XPATH,
-                                           '//div[@class="_1UqAr _3Qruy"]').text
-
-            self.dictionary[sentence] = solution
+            self.get_misc_answer(sentence)
 
         self.go_next()
 
@@ -245,55 +220,39 @@ class Duolingo (object):
         sentence = self.browser.find_element(By.XPATH,
                                        '//div[@class="_2SfAl _2Hg6H"]').get_attribute('data-prompt')
         sentence += " (f)"
-        print(sentence)
-        if sentence in self.dictionary:
-            choices = self.browser.find_elements(By.XPATH,
-                                           '//div[@data-test="challenge-judge-text"]')
+        if sentence in self.data.other_dictionary:
+            choices = self.browser.find_elements(By.XPATH, '//div[@data-test="challenge-judge-text"]')
+            answer_found = False
             for choice in choices:
-                if choice.text == self.dictionary[sentence]:
+                if choice.text in self.data.other_dictionary[sentence]:
+                    answer_found = True
                     choice.click()
+            if not answer_found:
+                self.get_misc_answer(sentence)
+
         else:
-            print('boop')
-            self.skip()
-            solution = self.browser.find_element(By.XPATH,
-                                           '//div[@class="_1UqAr _3Qruy"]')
-            self.dictionary[sentence] = solution.text
+            self.get_misc_answer(sentence)
 
         self.go_next()
 
     def challenge_name(self, skill_level, course_percentage):
-        sentence = self.browser.find_element(By.XPATH,
-                                       '//h1[@data-test="challenge-header"]').text
+        sentence = self.browser.find_element(By.XPATH, '//h1[@data-test="challenge-header"]').text
         sentence += " (n)"
-        if sentence in self.dictionary:
-            input_field = self.browser.find_element(By.XPATH,
-                                              '//input[@data-test="challenge-text-input"]')
-            input_field.send_keys(self.dictionary[sentence])
+        if sentence in self.data.other_dictionary:
+            input_field = self.browser.find_element(By.XPATH, '//input[@data-test="challenge-text-input"]')
+            input_field.send_keys(self.data.other_dictionary[sentence][0])
             input_field.send_keys(Keys.RETURN)
-            time.sleep(.3)
 
         else:
-            self.skip()
-
-            solution = WebDriverWait(self.browser, 2).until(EC.presence_of_element_located((By.XPATH, '//div[@class="_1UqAr _3Qruy"]'))).text
-
-            self.dictionary[sentence] = solution
+            self.get_misc_answer(sentence)
 
         self.go_next()
-
-    def challenge_complete_reverse_translation(self, skill_level, skill_no):
-        input_field = self.browser.find_element(By.XPATH, '//input[@data-test="challenge-text-input"]')
-        answer = self.browser.find_element(By.XPATH, '//div[@class="caPDQ"]').text
-        input_field.send_keys(answer)
-        input_field.send_keys(Keys.RETURN)
-        time.sleep(.35)
 
     def challenge_partial_reverse_translate(self, skill_level, skill_no):
         input_field = self.browser.find_element(By.XPATH, '//span[@spellcheck="False"]')
         answer = self.browser.find_element(By.XPATH, '//span[@class="_1yM6s _1vqO5"]').text
         input_field.send_keys(answer)
         input_field.send_keys(Keys.RETURN)
-        time.sleep(.35)
 
     def complete_skill(self, level, course_percentage):
 
@@ -301,30 +260,24 @@ class Duolingo (object):
 
         while not skill_completed:
             while True:
+                time.sleep(.4)
                 try:
-                    challenge = session.browser.find_element(By.XPATH,
-                                                    '//div[@data-test="challenge challenge-translate"]')
-                    print("translate time", time.time())
+                    challenge = session.browser.find_element(By.XPATH, '//div[@data-test="challenge challenge-translate"]')
 
                     self.challenge_translate(level, course_percentage)
                     continue
-                except WebDriverException as e:
+                except WebDriverException:
                     pass
 
                 try:
-                    challenge = self.browser.find_element(By.XPATH,
-                                                    '//div[@data-test="challenge challenge-select"]')
-                    print("selection time", time.time())
+                    challenge = self.browser.find_element(By.XPATH, '//div[@data-test="challenge challenge-select"]')
                     self.challenge_select(level, course_percentage)
                     continue
                 except WebDriverException:
                     pass
 
                 try:
-                    challenge = self.browser.find_element(By.XPATH,
-                                                    '//div[@data-test="challenge challenge-form"]')
-                    time.sleep(.3)
-                    print("form time", time.time())
+                    challenge = self.browser.find_element(By.XPATH, '//div[@data-test="challenge challenge-form"]')
                     self.challenge_form(level, course_percentage)
                     continue
                 except WebDriverException:
@@ -336,7 +289,6 @@ class Duolingo (object):
                     except:
                         challenge = self.browser.find_element(By.XPATH, '//div[@data-test="ge challenge-name"]')
 
-                    print("naming time", time.time())
                     self.challenge_name(level, course_percentage)
                     continue
                 except WebDriverException:
@@ -344,7 +296,7 @@ class Duolingo (object):
 
                 try:
                     challenge = self.browser.find_element(By.XPATH, '//div[@data-test="challenge challenge-completeReverseTranslation"]')
-                    self.challenge_complete_reverse_translation(level, course_percentage)
+                    self.challenge_translate(level, course_percentage, True)
                     continue
                 except:
                     pass
@@ -360,32 +312,29 @@ class Duolingo (object):
                         skill_completed = True
                         break
                 except:
-                    continue
+                    pass
 
                 try:
-                    print("no thanks 1", time.time())
                     no_thanks = self.browser.find_element(By.XPATH, '//button[@data-test="plus-no-thanks"]')
                     no_thanks.click()
                 except WebDriverException:
                     pass
 
                 try:
-                    print("no thanks 2", time.time())
                     no_thanks_2 = self.browser.find_element(By.XPATH, '//button[@class="WOZnx _275sd _1ZefG _47xRj U1P3s _40EaN"]')
                     no_thanks_2.click()
                 except WebDriverException:
                     pass
 
                 try:
-                    print("maybe later", time.time())
                     maybe_later = self.browser.find_element(By.XPATH, '//button[@data-test="maybe-later"]')
                     maybe_later.click()
                 except WebDriverException:
                     pass
 
                 try:
-                    print("Piss off", time.time())
                     piss_off = self.browser.find_element(By.XPATH, '//button[@data-test="plus-close-x"]')
+                    break
                     piss_off.click()
                 except WebDriverException:
                     pass
@@ -397,7 +346,15 @@ class Duolingo (object):
                 except WebDriverException:
                     pass
 
-            time.sleep(5)
+            time.sleep(4)
+            try:
+                self.browser.find_element(By.XPATH, '//button[@data-test="notification-drawer-no-thanks-button"]').click()
+            except:
+                pass
+            try:
+                self.browser.find_element(By.XPATH, '//div[@data-test="close-button"]').click()
+            except:
+                pass
 
     def learn_bot(self):
         while True:
@@ -406,11 +363,11 @@ class Duolingo (object):
             num_skills = len(skills)
 
             # Scroll to appoximate location of the skill in order for its information to fully load
-            course_percentage = self.current_skill / num_skills
+            course_percentage = self.data.current_skill / num_skills
             scroll = "window.scrollTo(0, document.body.scrollHeight * " + str(course_percentage) + ");"
             self.browser.execute_script(scroll)
 
-            skill = skills[self.current_skill]
+            skill = skills[self.data.current_skill]
 
             skill_level = self.skill_level(skill)
 
@@ -423,34 +380,34 @@ class Duolingo (object):
             xp = self.find_xp_gain(start_button)
 
             if xp <= 0:
+                print("Where'd all the XP go?")
                 break
 
-            increment = self.is_finished(skill) or self.is_near_finished(skill)
+            increment = self.will_be_finished(skill)
 
             start_button.click()
             self.complete_skill(skill_level, course_percentage)
 
             if increment:
-                self.current_skill = (self.current_skill + 1) % num_skills
+                self.data.update_current_skill((self.data.current_skill + 1) % num_skills)
 
 
-session = Duolingo()
+session = Duolingo('high_valyrian')
 
 def main(session):
-    me = Account('odeeogbfrpysdkgxbj@bvhrs.com', 'PZrmkxbamu3eUA9')
-    #me = Account('stuff0009@gmail.com', 'duolingodotcom')
 
     session.browser.get("https://www.duolingo.com/learn")
 
-    session.log_in(me)
+    session.log_in('odeeogbfrpysdkgxbj@bvhrs.com', 'PZrmkxbamu3eUA9')
 
     while not session.is_on_homepage():
         time.sleep(2)
 
-    try:
-        session.start_intro()
-    except WebDriverException:
-        pass
+    if session.data.current_skill == 0:
+        try:
+            session.start_intro()
+        except WebDriverException:
+            pass
 
     session.learn_bot()
 
@@ -458,5 +415,8 @@ def main(session):
 
 try:
     main(session)
-except KeyboardInterrupt:
+except BaseException as error:
+    if not error.__class__.__name__ == 'KeyboardInterrupt':
+        print(repr(error))
+        traceback.print_exc()
     session.save()
