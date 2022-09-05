@@ -1,7 +1,8 @@
 import time
+import random
 import traceback
 
-from process import humanizer
+from process import *
 from data.data_storage import DataStorage
 
 from selenium import webdriver
@@ -64,6 +65,8 @@ class Duolingo (object):
             self.browser, 2).until(
             EC.presence_of_element_located(
                 (By.XPATH, '//button[@data-test="player-next"]')))
+        if next_button.text == "Learn more":
+            raise WebDriverException('This is a fake next button')
         next_button.click()
 
     def use_keyboard(self):
@@ -178,6 +181,32 @@ class Duolingo (object):
 
         self.data.write_current_skill()
 
+    def submit_translation_answer(self, answer, input_field, skill_level, course_percentage):
+        if self.HUMANIZE:
+            processed_answer, wait_time = human_sentence_translation(
+                answer, is_known_language, 'translate', skill_level, course_percentage)
+            time.sleep(wait_time)
+            input_field.send_keys(processed_answer)
+        else:
+            input_field.send_keys(answer)
+        input_field.send_keys(Keys.RETURN)
+
+    def try_submit_mc_answer(self, choices, prompt, skill_level, course_percentage):
+        answer = None
+        for choice in choices:
+            if choice.text in self.data.other_dictionary[prompt]:
+                answer = choice
+                break
+        if answer:
+            if self.HUMANIZE:
+                choose_correctly, wait_time = human_multiple_choice(skill_level, course_percentage)
+                time.sleep(wait_time)
+                random.choice(choices).click()
+            else:
+                answer.click()
+        else:
+            self.get_misc_answer(sentence)
+
     def challenge_translate(
             self,
             skill_level,
@@ -187,13 +216,13 @@ class Duolingo (object):
         sentence = self.browser.find_element(
             By.XPATH, '//div[@class="_1KUxv _11rtD"]').text
         if not reverse:
-            sentence_language = self.find_prompt_language()
-            is_known_language = sentence_language == self.KNOWN_LANGUAGE
+            prompt_language = self.find_prompt_language()
+            is_known_language = prompt_language == self.LEARNING_LANGUAGE
         else:
-            sentence_language = self.KNOWN_LANGUAGE
-            is_known_language = True
+            prompt_language = self.KNOWN_LANGUAGE
+            is_known_language = False
 
-        if sentence in self.data.sentence_dictionary[sentence_language]:
+        if sentence in self.data.sentence_dictionary[prompt_language]:
 
             try:
                 input_field = self.browser.find_element(
@@ -203,15 +232,9 @@ class Duolingo (object):
                 input_field = self.browser.find_element(
                     By.XPATH, '//textarea[@data-test="challenge-translate-input"]')
 
-            answer = self.data.sentence_dictionary[sentence_language][sentence]
-            if self.HUMANIZE:
-                processed_answer, wait_time = humanizer(
-                    answer, is_known_language, 'translate', skill_level, course_percentage)
-                time.sleep(wait_time)
-                input_field.send_keys(processed_answer)
-            else:
-                input_field.send_keys(answer)
-            input_field.send_keys(Keys.RETURN)
+            answer = self.data.sentence_dictionary[prompt_language][sentence]
+
+            self.submit_translation_answer(answer, input_field, skill_level, course_percentage)
 
         else:
             self.skip()
@@ -222,63 +245,53 @@ class Duolingo (object):
             if (self.alt_solution_check(solution)):
                 solution = solution[17:]
 
-            self.data.add_sentence(sentence, solution, sentence_language)
+            self.data.add_sentence(sentence, solution, prompt_language)
 
         self.go_next()
 
     def challenge_select(self, skill_level, course_percentage):
-        sentence = self.browser.find_element(
+        prompt = self.browser.find_element(
             By.XPATH, '//h1[@data-test="challenge-header"]').text
-        sentence += " (s)"
-        if sentence in self.data.other_dictionary:
+        prompt += " (s)"
+        if prompt in self.data.other_dictionary:
             choices = self.browser.find_elements(
                 By.XPATH, '//span[@class="HaQTI"]')
 
-            answer_found = False
-            for choice in choices:
-                if choice.text in self.data.other_dictionary[sentence]:
-                    answer_found = True
-                    choice.click()
-            if not answer_found:
-                self.get_misc_answer(sentence)
+            self.try_submit_mc_answer(choices, prompt, skill_level, course_percentage)
 
         else:
-            self.get_misc_answer(sentence)
+            self.get_misc_answer(prompt)
 
         self.go_next()
 
     def challenge_form(self, skill_level, course_percentage):
-        sentence = self.browser.find_element(
+        prompt = self.browser.find_element(
             By.XPATH, '//div[@class="_2SfAl _2Hg6H"]').get_attribute('data-prompt')
-        sentence += " (f)"
-        if sentence in self.data.other_dictionary:
+        prompt += " (f)"
+        if prompt in self.data.other_dictionary:
             choices = self.browser.find_elements(
                 By.XPATH, '//div[@data-test="challenge-judge-text"]')
-            answer_found = False
-            for choice in choices:
-                if choice.text in self.data.other_dictionary[sentence]:
-                    answer_found = True
-                    choice.click()
-            if not answer_found:
-                self.get_misc_answer(sentence)
+
+            self.try_submit_mc_answer(choices, prompt, skill_level, course_percentage)
 
         else:
-            self.get_misc_answer(sentence)
+            self.get_misc_answer(prompt)
 
         self.go_next()
 
     def challenge_name(self, skill_level, course_percentage):
-        sentence = self.browser.find_element(
+        prompt = self.browser.find_element(
             By.XPATH, '//h1[@data-test="challenge-header"]').text
-        sentence += " (n)"
-        if sentence in self.data.other_dictionary:
+        prompt += " (n)"
+        if prompt in self.data.other_dictionary:
+            answer = self.data.other_dictionary[prompt][0]
             input_field = self.browser.find_element(
                 By.XPATH, '//input[@data-test="challenge-text-input"]')
-            input_field.send_keys(self.data.other_dictionary[sentence][0])
-            input_field.send_keys(Keys.RETURN)
+
+            self.submit_translation_answer(answer, input_field, skill_level, course_percentage)
 
         else:
-            self.get_misc_answer(sentence)
+            self.get_misc_answer(prompt)
 
         self.go_next()
 
@@ -349,10 +362,6 @@ class Duolingo (object):
                 except WebDriverException:
                     pass
 
-                if self.is_on_homepage():
-                    skill_completed = True
-                    break
-
                 try:
                     no_thanks = self.browser.find_element(
                         By.XPATH, '//button[@data-test="plus-no-thanks"]')
@@ -377,7 +386,6 @@ class Duolingo (object):
                 try:
                     piss_off = self.browser.find_element(
                         By.XPATH, '//button[@data-test="plus-close-x"]')
-                    break
                     piss_off.click()
                 except WebDriverException:
                     pass
@@ -389,6 +397,10 @@ class Duolingo (object):
                         button.click()
                 except WebDriverException:
                     pass
+
+                if self.is_on_homepage():
+                    skill_completed = True
+                    break
 
             time.sleep(4)
             try:
