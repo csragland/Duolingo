@@ -112,33 +112,46 @@ def add_typos(str, difficulty):
     str = normalize(str)
 
     response = ''
-    for word in str.split(' '):
-        word_with_typos = word
+    split = str.split(' ')
 
-        if (word in always_typos):
-            word_with_typos = always_typos[word]
-        elif (word in common_typos):
+    for  i in range(len(split)):
+        original_word = split[i]
+        word = original_word
+
+        if (original_word in always_typos):
+            word = always_typos[original_word]
+        elif (original_word in common_typos):
             if (np.random.random() < difficulty / 2):
-                word_with_typos = common_typos[word]
+                word = common_typos[original_word]
 
-        if (np.random.random() < 0.018):
-            word_with_typos = word[1:]
+        # maybe replace the with a
+        if (original_word == 'the' and i < len(split) - 1):
+            next_word = split[i + 1]
+            irregular_plurals = ['men', 'women']
+            if (next_word[-1] != 's' and next_word[0] != 'h' and next_word not in irregular_plurals):
+                if np.random.random() < 0.364:
+                    vowel = next_word[0] in ['a', 'e', 'i', 'o', 'u']
+                    word = 'an' if vowel else 'a'
 
-        if len(word_with_typos) > 8:
 
-            if 'll' in word_with_typos and np.random.random() < 0.1733:
-                string.replace('ll', 'l')
+        if (np.random.random() < 0.0068):
+            word = word[1:]
 
-            if 'ie' in word_with_typos and np.random.random() < 0.3653:
-                string.replace('ie', 'ei')
+        if len(word) > 8:
 
-            if 'ei' in word_with_typos and np.random.random() < 0.0354:
-                string.replace('ei', 'ie')
+            if 'll' in word and np.random.random() < 0.1733:
+                word = word.replace('ll', 'l')
 
-            if 'ae' in word_with_typos and np.random.random() < 0.2435:
-                string.replace('ae', 'ea')
+            if 'ie' in word and np.random.random() < 0.3653:
+                word = word.replace('ie', 'ei')
 
-        response += word_with_typos + ' '
+            if 'ei' in word and np.random.random() < 0.0354:
+                word = word.replace('ei', 'ie')
+
+            if 'ae' in word and np.random.random() < 0.2435:
+                word = word.replace('ae', 'ea')
+
+        response += word + ' '
 
     # remove the last space
     response = response[:-1]
@@ -156,6 +169,7 @@ if __name__ == '__main__':
     print(human_sentence_translation('Ābri zaldrīzī ēzi.', True, 1, 0.3))
     print(human_sentence_translation('The knights have commanders.', True, 1, 0.3))
     print(human_sentence_translation('Are they chaining the knights?', True, 1, 0.3))
+    print(human_sentence_translation('The women and the men are smiling.', True, 1, 0.3))
 
     print(human_multiple_choice(4, 0.2))
     print(human_multiple_choice(4, 0.2))
