@@ -23,6 +23,7 @@ class Duolingo (object):
         self.LEARNING_LANGUAGE = learning_language
         self.KNOWN_LANGUAGE = known_language
         self.HUMANIZE = humanize
+        self.WRONG_CUTOFF = 3
 
         self.browser.maximize_window()
 
@@ -154,7 +155,7 @@ class Duolingo (object):
             self.browser, 1).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, 'h1[data-test="challenge-header"]'))).text
-        assert prompt[:14] == 'Write this in ', 'Unusual translation prompt'
+        assert prompt[:14] == 'Write this in ', 'Unusual translation prompt: ' + prompt
         language = prompt[14:].replace(' ', '_').lower()
         if language == self.KNOWN_LANGUAGE:
             return self.LEARNING_LANGUAGE
@@ -180,10 +181,13 @@ class Duolingo (object):
 
         self.data.write_current_skill()
 
-    def submit_translation_answer(self, answer, input_field, skill_level, course_percentage):
+    def submit_translation_answer(self, answer, input_field, skill_level, course_percentage, skip_humanize):
         if self.HUMANIZE:
             processed_answer, wait_time = human_sentence_translation(
                 answer, is_known_language, 'translate', skill_level, course_percentage)
+            if skip_humanize:
+                processed_answer = normalize(answer)
+                wait_time *= 1.2
             time.sleep(wait_time)
             input_field.send_keys(processed_answer)
         else:
@@ -210,18 +214,31 @@ class Duolingo (object):
             self,
             skill_level,
             course_percentage,
+            wrong_count,
             reverse=False):
 
         sentence = self.browser.find_element(
             By.XPATH, '//div[@class="_1KUxv _11rtD"]').text
+
+        if not sentence in wrong_count:
+            wrong_count[sentence] = 0
+        else:
+            wrong_count[sentence] += 1
+        skip_humanize = wrong_count[sentence] >= self.WRONG_CUTOFF
+        replace_answer = wrong_count[sentence] >= self.WRONG_CUTOFF + 1
+
         if not reverse:
+            WebDriverWait(
+                self.browser, 2).until(
+                EC.presence_of_all_elements_located(
+                    (By.XPATH, '//div[@data-test="challenge challenge-translate"]')))
             prompt_language = self.find_prompt_language()
             is_known_language = prompt_language == self.LEARNING_LANGUAGE
         else:
             prompt_language = self.KNOWN_LANGUAGE
             is_known_language = False
 
-        if sentence in self.data.sentence_dictionary[prompt_language]:
+        if sentence in self.data.sentence_dictionary[prompt_language] and not replace_answer:
 
             try:
                 input_field = self.browser.find_element(
@@ -233,7 +250,7 @@ class Duolingo (object):
 
             answer = self.data.sentence_dictionary[prompt_language][sentence]
 
-            self.submit_translation_answer(answer, input_field, skill_level, course_percentage)
+            self.submit_translation_answer(answer, input_field, skill_level, course_percentage, skip_humanize)
 
         else:
             self.skip()
@@ -246,12 +263,16 @@ class Duolingo (object):
 
             self.data.add_sentence(sentence, solution, prompt_language)
 
+            if replace_answer:
+                wrong_count[sentence] = 0
+
         self.go_next()
 
     def challenge_select(self, skill_level, course_percentage):
         prompt = self.browser.find_element(
             By.XPATH, '//h1[@data-test="challenge-header"]').text
         prompt += " (s)"
+
         if prompt in self.data.other_dictionary:
             choices = self.browser.find_elements(
                 By.XPATH, '//span[@class="HaQTI"]')
@@ -267,6 +288,7 @@ class Duolingo (object):
         prompt = self.browser.find_element(
             By.XPATH, '//div[@class="_2SfAl _2Hg6H"]').get_attribute('data-prompt')
         prompt += " (f)"
+
         if prompt in self.data.other_dictionary:
             choices = self.browser.find_elements(
                 By.XPATH, '//div[@data-test="challenge-judge-text"]')
@@ -278,19 +300,30 @@ class Duolingo (object):
 
         self.go_next()
 
-    def challenge_name(self, skill_level, course_percentage):
+    def challenge_name(self, skill_level, course_percentage, wrong_count):
         prompt = self.browser.find_element(
             By.XPATH, '//h1[@data-test="challenge-header"]').text
         prompt += " (n)"
-        if prompt in self.data.other_dictionary:
+
+        if not prompt in wrong_count:
+            wrong_count[prompt] = 0
+        else:
+            wrong_count[prompt] += 1
+        skip_humanize = wrong_count[prompt] >= self.WRONG_CUTOFF
+        replace_answer = wrong_count[prompt] >= self.WRONG_CUTOFF + 1
+
+        if prompt in self.data.other_dictionary and not replace_answer:
             answer = self.data.other_dictionary[prompt][0]
             input_field = self.browser.find_element(
                 By.XPATH, '//input[@data-test="challenge-text-input"]')
 
-            self.submit_translation_answer(answer, input_field, skill_level, course_percentage)
+            self.submit_translation_answer(answer, input_field, skill_level, course_percentage, skip_humanize)
 
         else:
             self.get_misc_answer(prompt)
+
+            if replace_answer:
+                wrong_count[prompt] = 0
 
         self.go_next()
 
@@ -305,6 +338,7 @@ class Duolingo (object):
     def complete_skill(self, level, course_percentage):
 
         skill_completed = False
+        wrong_count = dict()
 
         while not skill_completed:
             while True:
@@ -313,7 +347,7 @@ class Duolingo (object):
                     challenge = self.browser.find_element(
                         By.XPATH, '//div[@data-test="challenge challenge-translate"]')
 
-                    self.challenge_translate(level, course_percentage)
+                    self.challenge_translate(level, course_percentage, wrong_count)
                     continue
                 except WebDriverException:
                     pass
@@ -342,7 +376,7 @@ class Duolingo (object):
                         challenge = self.browser.find_element(
                             By.XPATH, '//div[@data-test="ge challenge-name"]')
 
-                    self.challenge_name(level, course_percentage)
+                    self.challenge_name(level, course_percentage, wrong_count)
                     continue
                 except WebDriverException:
                     pass
@@ -350,7 +384,7 @@ class Duolingo (object):
                 try:
                     challenge = self.browser.find_element(
                         By.XPATH, '//div[@data-test="challenge challenge-completeReverseTranslation"]')
-                    self.challenge_translate(level, course_percentage, True)
+                    self.challenge_translate(level, course_percentage, wrong_count, True)
                     continue
                 except WebDriverException:
                     pass
@@ -412,6 +446,7 @@ class Duolingo (object):
                     By.XPATH, '//div[@data-test="close-button"]').click()
             except BaseException:
                 pass
+            time.sleep(.5)
 
     def learn_bot(self):
         while True:

@@ -26,6 +26,15 @@ def main(session):
 
     session.save()
 
+def practice_checkpoint(session):
+    session.browser.get("https://www.duolingo.com/learn")
+    session.log_in('odeeogbfrpysdkgxbj@bvhrs.com', 'PZrmkxbamu3eUA9')
+    time.sleep(7)
+    while True:
+        session.browser.get("https://www.duolingo.com/checkpoint/hv/2/practice")
+        session.complete_skill(100, .33)
+    session.save()
+
 if __name__ == '__main__':
     session = Duolingo('high_valyrian')
     try:
