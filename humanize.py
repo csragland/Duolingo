@@ -30,7 +30,7 @@ fill_typos()
 def human_sentence_translation(answer, known_language, skill_level, course_percentage):
 
     minimum_feasible_time = 1.6218
-    probability_pause = 0.07396
+    probability_pause = 0.03396
 
     difficulty =  .85 + .05 * course_percentage + .05 * skill_level
 
@@ -48,7 +48,7 @@ def human_sentence_translation(answer, known_language, skill_level, course_perce
 
     mean_time = d1 + d2 * (2 - difficulty)
 
-    time_to_answer = get_wait_time(mean_time, minimum_feasible_time, probability_pause, 3)
+    time_to_answer = get_wait_time(mean_time, minimum_feasible_time, probability_pause, 2)
 
     answer = add_typos(answer, difficulty)
 
@@ -70,11 +70,11 @@ def human_multiple_choice(skill_level, course_percentage):
     difficulty =  .85 + .05 * course_percentage + .05 * skill_level
     get_correct = np.random.random() < difficulty
 
-    time_to_answer = get_wait_time(2 * difficulty, minimum_feasible_time, probability_pause, 5)
+    time_to_answer = get_wait_time(2 * difficulty, minimum_feasible_time, probability_pause, 2)
 
     return (get_correct, time_to_answer)
 
-def get_wait_time(mean_time, minimum_feasible_time, probability_pause, pause_factor):
+def get_wait_time(mean_time, minimum_feasible_time, probability_pause=0, pause_factor=1):
 
     minimum_feasible_time = minimum_feasible_time + np.random.random() / 3
 
