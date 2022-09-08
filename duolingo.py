@@ -1,7 +1,7 @@
 import time
 import random
 
-from process import *
+import humanize
 from data_storage import DataStorage
 
 from selenium import webdriver
@@ -188,12 +188,12 @@ class Duolingo (object):
 
         self.data.write_current_skill()
 
-    def submit_translation_answer(self, answer, input_field, skill_level, course_percentage, skip_humanize):
+    def submit_translation_answer(self, answer, is_known_language, input_field, skill_level, course_percentage, skip_humanize):
         if self.HUMANIZE:
-            processed_answer, wait_time = human_sentence_translation(
-                answer, is_known_language, 'translate', skill_level, course_percentage)
+            processed_answer, wait_time = humanize.human_sentence_translation(
+                answer, is_known_language, skill_level, course_percentage)
             if skip_humanize:
-                processed_answer = normalize(answer)
+                processed_answer = humanize.normalize(answer)
                 wait_time *= 1.2
             time.sleep(wait_time)
             input_field.send_keys(processed_answer)
@@ -209,7 +209,7 @@ class Duolingo (object):
                 break
         if answer:
             if self.HUMANIZE:
-                choose_correctly, wait_time = human_multiple_choice(skill_level, course_percentage)
+                choose_correctly, wait_time = humanize.human_multiple_choice(skill_level, course_percentage)
                 time.sleep(wait_time)
                 random.choice(choices).click()
             else:
@@ -259,7 +259,7 @@ class Duolingo (object):
 
             answer = self.data.sentence_dictionary[prompt_language][sentence]
 
-            self.submit_translation_answer(answer, input_field, skill_level, course_percentage, skip_humanize)
+            self.submit_translation_answer(answer, is_known_language, input_field, skill_level, course_percentage, skip_humanize)
 
         else:
             self.skip()
@@ -328,7 +328,7 @@ class Duolingo (object):
             input_field = self.browser.find_element(
                 By.XPATH, '//input[@data-test="challenge-text-input"]')
 
-            self.submit_translation_answer(answer, input_field, skill_level, course_percentage, skip_humanize)
+            self.submit_translation_answer(answer, is_known_language, input_field, skill_level, course_percentage, skip_humanize)
 
         else:
             self.get_misc_answer(prompt)

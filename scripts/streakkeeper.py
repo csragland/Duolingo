@@ -63,7 +63,7 @@ def main(session):
     session.save()
 
 if __name__ == '__main__':
-    session = Duolingo('high_valyrian')
+    session = Duolingo('high_valyrian', humanize=True)
     try:
         main(session)
     except BaseException as error:
