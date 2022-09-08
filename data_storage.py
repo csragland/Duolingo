@@ -14,7 +14,7 @@ class DataStorage (object):
             reader = csv.reader(answers_file)
             for row in reader:
                 self.sentence_dictionary[known_language][row[0]] = row[1]
-                self.sentence_dictionary[learning_language][row[0]] = row[1]
+                self.sentence_dictionary[learning_language][row[1]] = row[0]
 
         with open('data/' + learning_language + '/answers_other.csv', 'r') as answers_file:
             reader = csv.reader(answers_file)

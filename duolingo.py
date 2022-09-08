@@ -84,6 +84,13 @@ class Duolingo (object):
     def alt_solution_check(self, solution):
         return len(solution) > 17 and solution[0:17] == "Correct solution:"
 
+    def reformat(self, sentence):
+        a = sentence.replace('  ', ' ')
+        b = a.replace(' ?', '?')
+        c = b.replace(' .', '.')
+        d = c.replace(' !', '!')
+        return d
+
     def is_on_homepage(self):
         try:
             self.browser.find_element(By.XPATH, '//div[@data-test="home"]')
@@ -220,6 +227,8 @@ class Duolingo (object):
         sentence = self.browser.find_element(
             By.XPATH, '//div[@class="_1KUxv _11rtD"]').text
 
+        sentence = self.reformat(sentence)
+
         if not sentence in wrong_count:
             wrong_count[sentence] = 0
         else:
@@ -260,6 +269,8 @@ class Duolingo (object):
 
             if (self.alt_solution_check(solution)):
                 solution = solution[17:]
+
+            solution = self.reformat(solution)
 
             self.data.add_sentence(sentence, solution, prompt_language)
 
@@ -448,42 +459,41 @@ class Duolingo (object):
                 pass
             time.sleep(.5)
 
-    def learn_bot(self):
-        while True:
+    def do_next_skill(self):
+        skills = WebDriverWait(
+            self.browser, 20).until(
+            EC.presence_of_all_elements_located(
+                (By.CSS_SELECTOR, 'div[data-test="skill"]')))
+        num_skills = len(skills)
 
-            skills = WebDriverWait(
-                self.browser, 20).until(
-                EC.presence_of_all_elements_located(
-                    (By.CSS_SELECTOR, 'div[data-test="skill"]')))
-            num_skills = len(skills)
+        # Scroll to appoximate location of the skill in order for its
+        # information to fully load
+        course_percentage = self.data.current_skill / num_skills
+        scroll = "window.scrollTo(0, document.body.scrollHeight * " + str(course_percentage) + ");"
+        self.browser.execute_script(scroll)
 
-            # Scroll to appoximate location of the skill in order for its
-            # information to fully load
-            course_percentage = self.data.current_skill / num_skills
-            scroll = "window.scrollTo(0, document.body.scrollHeight * " + str(course_percentage) + ");"
+        skill = skills[self.data.current_skill]
+
+        skill_level = self.skill_level(skill)
+
+        try:
+            start_button = self.start_button(skill)
+        except WebDriverException:
             self.browser.execute_script(scroll)
+            start_button = self.start_button(skill)
 
-            skill = skills[self.data.current_skill]
+        xp = self.find_xp_gain(start_button)
+        current_sentences = len(self.data.sentence_dictionary)
 
-            skill_level = self.skill_level(skill)
+        increment = self.will_be_finished(skill)
 
-            try:
-                start_button = self.start_button(skill)
-            except WebDriverException:
-                self.browser.execute_script(scroll)
-                start_button = self.start_button(skill)
+        start_button.click()
+        self.complete_skill(skill_level, course_percentage)
 
-            xp = self.find_xp_gain(start_button)
+        if increment:
+            self.data.update_current_skill(
+                (self.data.current_skill + 1) % num_skills)
 
-            if xp <= 0:
-                print("Where'd all the XP go?")
-                break
+        num_new_sentences = current_sentences - len(self.data.sentence_dictionary)
 
-            increment = self.will_be_finished(skill)
-
-            start_button.click()
-            self.complete_skill(skill_level, course_percentage)
-
-            if increment:
-                self.data.update_current_skill(
-                    (self.data.current_skill + 1) % num_skills)
+        return xp, num_new_sentences, increment
