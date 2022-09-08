@@ -48,7 +48,7 @@ def human_sentence_translation(answer, known_language, skill_level, course_perce
 
     mean_time = d1 + d2 * (2 - difficulty)
 
-    time_to_answer = get_wait_time(mean_time, minimum_feasible_time, probability_pause, 2)
+    time_to_answer = get_wait_time(mean_time, minimum_feasible_time, 0, probability_pause, 2)
 
     answer = add_typos(answer, difficulty)
 
@@ -70,18 +70,19 @@ def human_multiple_choice(skill_level, course_percentage):
     difficulty =  .85 + .05 * course_percentage + .05 * skill_level
     get_correct = np.random.random() < difficulty
 
-    time_to_answer = get_wait_time(2 * difficulty, minimum_feasible_time, probability_pause, 2)
+    time_to_answer = get_wait_time(2 * difficulty, minimum_feasible_time, 0, probability_pause, 2)
 
     return (get_correct, time_to_answer)
 
-def get_wait_time(mean_time, minimum_feasible_time, probability_pause=0, pause_factor=1):
+def get_wait_time(mean_time, minimum_feasible_time, stdev_time=0, probability_pause=0, pause_factor=1):
 
     minimum_feasible_time = minimum_feasible_time + np.random.random() / 3
 
     time_to_answer = -1
     while time_to_answer < minimum_feasible_time:
 
-        stdev_time = max(0.5, np.random.normal(1, 1))
+        if (stdev_time <= 0):
+            stdev_time = max(0.5, np.random.normal(1, 1))
 
         time_to_answer = np.random.normal(mean_time, stdev_time)
 
