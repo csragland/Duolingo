@@ -119,6 +119,13 @@ def add_typos(str, difficulty):
         original_word = split[i]
         word = original_word
 
+        # skip the "all" in "you all"
+        if word == 'all' and i > 0 and split[i - 1] == 'you':
+            continue
+
+        if word == 'issa' and np.random.random() < 0.0644:
+            word = 'issi'
+
         if (original_word in always_typos):
             word = always_typos[original_word]
         elif (original_word in common_typos):
@@ -134,24 +141,30 @@ def add_typos(str, difficulty):
                     vowel = next_word[0] in ['a', 'e', 'i', 'o', 'u']
                     word = 'an' if vowel else 'a'
 
-
+        # Deleting random letters
         if (len(word) > 3 and np.random.random() < 0.0458):
             idx = np.random.randint(len(word))
             word = word[:idx] + word[idx + 1:]
 
-        if len(word) > 8:
+        # Letter swaps
+        replacements = [
+            ('ll', 'l', 0.1733),
+            ('ss', 's', 0.0653),
+            ('ie', 'ei', 0.3653),
+            ('ei', 'ie', 0.0354),
+            ('ae', 'ea', 0.3835),
+            ('ae', 'ea', 0.3835),
+        ]
 
-            if 'll' in word and np.random.random() < 0.1733:
-                word = word.replace('ll', 'l')
+        if len(word) > 4:
+            for r in replacements:
+                if r[0] in word and np.random.random() < r[2]:
+                    word = word.replace(r[0], r[1])
 
-            if 'ie' in word and np.random.random() < 0.3653:
-                word = word.replace('ie', 'ei')
-
-            if 'ei' in word and np.random.random() < 0.0354:
-                word = word.replace('ei', 'ie')
-
-            if 'ae' in word and np.random.random() < 0.2435:
-                word = word.replace('ae', 'ea')
+        # Duplicate random letters
+        if (len(word) > 3 and np.random.random() < 0.0158):
+            idx = np.random.randint(len(word))
+            word = word[:idx] + word[idx] + word[idx:]
 
         response += word + ' '
 
@@ -172,6 +185,8 @@ if __name__ == '__main__':
     print(human_sentence_translation('The knights have commanders.', True, 1, 0.3))
     print(human_sentence_translation('Are they chaining the knights?', True, 1, 0.3))
     print(human_sentence_translation('The women and the men are smiling.', True, 1, 0.3))
+    print(human_sentence_translation('You all are eating an owl.', True, 1, 0.3))
+    print(human_sentence_translation('Atroksia kirine issa.', True, 1, 0.3))
 
     print(human_multiple_choice(4, 0.2))
     print(human_multiple_choice(4, 0.2))
