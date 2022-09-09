@@ -135,8 +135,9 @@ def add_typos(str, difficulty):
                     word = 'an' if vowel else 'a'
 
 
-        if (np.random.random() < 0.0068):
-            word = word[1:]
+        if (len(word) > 3 and np.random.random() < 0.0458):
+            idx = np.random.randint(len(word))
+            word = word[:idx] + word[idx + 1:]
 
         if len(word) > 8:
 
