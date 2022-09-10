@@ -29,7 +29,7 @@ fill_typos()
 #       (float) how many seconds to wait
 def human_sentence_translation(answer, known_language, skill_level, course_percentage):
 
-    minimum_feasible_time = 1.6218
+    minimum_feasible_time = 0.6218
     probability_pause = 0.03396
 
     difficulty =  .85 + .05 * course_percentage + .05 * skill_level
@@ -79,12 +79,17 @@ def get_wait_time(mean_time, minimum_feasible_time, stdev_time=0, probability_pa
     minimum_feasible_time = minimum_feasible_time + np.random.random() / 3
 
     time_to_answer = -1
+    num_tries = 10
     while time_to_answer < minimum_feasible_time:
 
         if (stdev_time <= 0):
             stdev_time = max(0.5, np.random.normal(1, 1))
 
-        time_to_answer = np.random.normal(mean_time, stdev_time)
+        time_to_answer = max(time_to_answer, np.random.normal(minimum_feasible_time + mean_time, stdev_time))
+        num_tries -= 1
+
+        if (num_tries <= 0):
+            break
 
     pause = np.random.random() < probability_pause
 
@@ -179,17 +184,18 @@ def add_typos(str, difficulty):
 
 if __name__ == '__main__':
 
-    print(human_sentence_translation('Daenerys is a strong woman.', True, 1, 0.3))
-    print(human_sentence_translation('The leader is blessing the birds.', True, 1, 0.3))
-    print(human_sentence_translation('Ābri zaldrīzī ēzi.', True, 1, 0.3))
-    print(human_sentence_translation('The knights have commanders.', True, 1, 0.3))
-    print(human_sentence_translation('Are they chaining the knights?', True, 1, 0.3))
-    print(human_sentence_translation('The women and the men are smiling.', True, 1, 0.3))
-    print(human_sentence_translation('You all are eating an owl.', True, 1, 0.3))
-    print(human_sentence_translation('Atroksia kirine issa.', True, 1, 0.3))
+    # print(human_sentence_translation('Daenerys is a strong woman.', True, 1, 0.3))
+    # print(human_sentence_translation('The leader is blessing the birds.', True, 1, 0.3))
+    # print(human_sentence_translation('Ābri zaldrīzī ēzi.', True, 1, 0.3))
+    # print(human_sentence_translation('The knights have commanders.', True, 5, 15 / 43))
+    # print(human_sentence_translation('Are they chaining the knights?', True, 1, 0.3))
+    # print(human_sentence_translation('The women and the men are smiling.', True, 1, 0.3))
+    # print(human_sentence_translation('You all are eating an owl.', True, 1, 0.3))
+    for i in range(1000):
+        print(human_sentence_translation('elilla', False, 5, 15/43))
 
-    print(human_multiple_choice(4, 0.2))
-    print(human_multiple_choice(4, 0.2))
-    print(human_multiple_choice(4, 0.2))
-    print(human_multiple_choice(4, 0.2))
-    print(human_multiple_choice(4, 0.2))
+    # print(human_multiple_choice(4, 0.2))
+    # print(human_multiple_choice(4, 0.2))
+    # print(human_multiple_choice(4, 0.2))
+    # print(human_multiple_choice(4, 0.2))
+    # print(human_multiple_choice(4, 0.2))

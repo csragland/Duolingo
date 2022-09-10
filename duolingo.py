@@ -34,7 +34,7 @@ class Duolingo (object):
                 (By.XPATH, '//button[@data-test="have-account"]'))
         )
 
-        have_account.click()
+        self.click(have_account)
 
         email_field = WebDriverWait(self.browser, 10).until(
             EC.presence_of_element_located(
@@ -51,23 +51,24 @@ class Duolingo (object):
 
         login_button = self.browser.find_element(
             By.XPATH, '//button[@data-test="register-button"]')
-        login_button.click()
+        self.click(login_button)
 
     def skip(self):
         skip = WebDriverWait(
             self.browser, 2).until(
             EC.presence_of_element_located(
                 (By.XPATH, '//button[@data-test="player-skip"]')))
-        skip.click()
+        self.click(skip, 'skip')
 
     def go_next(self):
+        print("Going next")
         next_button = WebDriverWait(
             self.browser, 2).until(
             EC.presence_of_element_located(
-                (By.XPATH, '//button[@data-test="player-next"]')))
+                (By.CSS_SELECTOR, 'button[data-test="player-next"][aria-disabled="false"]')))
         if next_button.text == "Learn more":
             raise WebDriverException('This is a fake next button')
-        next_button.click()
+        self.click(next_button, 'next')
 
     def use_keyboard(self):
         try:
@@ -77,7 +78,7 @@ class Duolingo (object):
                     (By.XPATH, '//button[@data-test="player-toggle-keyboard"]')))
 
             if button.text == "Use keyboard" or button.text == "Make harder":
-                button.click()
+                self.click(button)
         except WebDriverException:
             pass
 
@@ -104,7 +105,7 @@ class Duolingo (object):
             EC.presence_of_element_located(
                 (By.XPATH, '//a[@data-test="intro-lesson"]')))
 
-        intro.click()
+        self.click(intro)
 
         self.complete_skill(0, 1)
 
@@ -188,18 +189,42 @@ class Duolingo (object):
 
         self.data.write_current_skill()
 
-    def submit_translation_answer(self, answer, is_known_language, input_field, skill_level, course_percentage, skip_humanize):
+    def click(self, element, element_type=''):
         if self.HUMANIZE:
+            if element_type == '':
+                print('normal')
+                time.sleep(humanize.get_wait_time(2.3, 1))
+            elif element_type == 'next':
+                print('next')
+                time.sleep(humanize.get_wait_time(.4, .2, .1))
+            elif element_type == 'skip':
+                print('skip')
+                time.sleep(humanize.get_wait_time(5,2, 2.9))
+            elif element_type == 'spam':
+                print('spam')
+                time.sleep(humanize.get_wait_time(1.6, .8, .5))
+            else:
+                time.sleep(humanize.get_wait_time(3, 1))
+        element.click()
+
+    def submit_translation_answer(self, answer, is_known_language, input_field, skill_level, course_percentage, skip_humanize):
+        if not self.HUMANIZE:
+            input_field.send_keys(answer)
+            print("ENTER")
+            input_field.send_keys(Keys.RETURN)
+        else:
+            print(answer)
             processed_answer, wait_time = humanize.human_sentence_translation(
                 answer, is_known_language, skill_level, course_percentage)
             if skip_humanize:
                 processed_answer = humanize.normalize(answer)
-                wait_time *= 1.2
+                wait_time += 1.7
+            print(processed_answer, wait_time)
             time.sleep(wait_time)
+            print("typing")
             input_field.send_keys(processed_answer)
-        else:
-            input_field.send_keys(answer)
-        input_field.send_keys(Keys.RETURN)
+            print("ENTER")
+            input_field.send_keys(Keys.RETURN)
 
     def try_submit_mc_answer(self, choices, prompt, skill_level, course_percentage):
         answer = None
@@ -208,14 +233,17 @@ class Duolingo (object):
                 answer = choice
                 break
         if answer:
+            choose_correctly = True
             if self.HUMANIZE:
                 choose_correctly, wait_time = humanize.human_multiple_choice(skill_level, course_percentage)
                 time.sleep(wait_time)
-                random.choice(choices).click()
+            if not choose_correctly:
+                print("GUESSING")
+                self.click(random.choice(choices))
             else:
-                answer.click()
+                self.click(answer)
         else:
-            self.get_misc_answer(sentence)
+            self.get_misc_answer(prompt)
 
     def challenge_translate(
             self,
@@ -328,7 +356,7 @@ class Duolingo (object):
             input_field = self.browser.find_element(
                 By.XPATH, '//input[@data-test="challenge-text-input"]')
 
-            self.submit_translation_answer(answer, is_known_language, input_field, skill_level, course_percentage, skip_humanize)
+            self.submit_translation_answer(answer, False, input_field, skill_level, course_percentage, skip_humanize)
 
         else:
             self.get_misc_answer(prompt)
@@ -358,6 +386,7 @@ class Duolingo (object):
                     challenge = self.browser.find_element(
                         By.XPATH, '//div[@data-test="challenge challenge-translate"]')
 
+                    print("Found challenge-translate")
                     self.challenge_translate(level, course_percentage, wrong_count)
                     continue
                 except WebDriverException:
@@ -409,36 +438,36 @@ class Duolingo (object):
                 try:
                     no_thanks = self.browser.find_element(
                         By.XPATH, '//button[@data-test="plus-no-thanks"]')
-                    no_thanks.click()
+                    self.click(no_thanks, 'spam')
                 except WebDriverException:
                     pass
 
                 try:
                     no_thanks_2 = self.browser.find_element(
                         By.XPATH, '//button[@class="WOZnx _275sd _1ZefG _47xRj U1P3s _40EaN"]')
-                    no_thanks_2.click()
+                    self.click(no_thanks_2, 'spam')
                 except WebDriverException:
                     pass
 
                 try:
                     maybe_later = self.browser.find_element(
                         By.XPATH, '//button[@data-test="maybe-later"]')
-                    maybe_later.click()
+                    self.click(maybe_later, 'spam')
                 except WebDriverException:
                     pass
 
                 try:
                     piss_off = self.browser.find_element(
                         By.XPATH, '//button[@data-test="plus-close-x"]')
-                    piss_off.click()
+                    self.click(piss_off, 'spam')
                 except WebDriverException:
                     pass
 
                 try:
                     start_preview = self.browser.find_element(
                         By.XPATH, '//button[@class="_3HhhB _2NolF _275sd _1ZefG _3bnKZ _1Rcu8 _3PMUi"]')
-                    if button.text == 'Start my free preview':
-                        button.click()
+                    if start_preview.text == 'Start my free preview':
+                        self.click(start_preview, 'spam')
                 except WebDriverException:
                     pass
 
@@ -448,13 +477,15 @@ class Duolingo (object):
 
             time.sleep(4)
             try:
-                self.browser.find_element(
-                    By.XPATH, '//button[@data-test="notification-drawer-no-thanks-button"]').click()
+                ad1 = self.browser.find_element(
+                    By.XPATH, '//button[@data-test="notification-drawer-no-thanks-button"]')
+                self.click(ad1, 'spam')
             except BaseException:
                 pass
             try:
-                self.browser.find_element(
-                    By.XPATH, '//div[@data-test="close-button"]').click()
+                ad2 = self.browser.find_element(
+                    By.XPATH, '//div[@data-test="close-button"]')
+                self.click(ad2, 'spam')
             except BaseException:
                 pass
             time.sleep(.5)
@@ -487,7 +518,7 @@ class Duolingo (object):
 
         increment = self.will_be_finished(skill)
 
-        start_button.click()
+        self.click(start_button)
         self.complete_skill(skill_level, course_percentage)
 
         if increment:

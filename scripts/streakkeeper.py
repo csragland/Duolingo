@@ -61,6 +61,7 @@ def main(session):
         checkpoint = (checkpoint + 1) % 3
 
     session.save()
+    print("Sun is getting real low")
 
 if __name__ == '__main__':
     session = Duolingo('high_valyrian', humanize=True)
