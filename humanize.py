@@ -89,6 +89,7 @@ def get_wait_time(mean_time, minimum_feasible_time, stdev_time=0, probability_pa
         num_tries -= 1
 
         if (num_tries <= 0):
+            time_to_answer = 1.1 * minimum_feasible_time
             break
 
     pause = np.random.random() < probability_pause

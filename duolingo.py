@@ -4,7 +4,8 @@ import random
 import humanize
 from data_storage import DataStorage
 
-from selenium import webdriver
+# from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -17,7 +18,8 @@ class Duolingo (object):
             learning_language,
             known_language='english',
             humanize=False):
-        self.browser = webdriver.Safari()
+        self.browser = uc.Chrome()
+        # self.browser = webdriver.Safari()
         self.data = DataStorage(learning_language)
 
         self.LEARNING_LANGUAGE = learning_language
@@ -383,7 +385,7 @@ class Duolingo (object):
             while True:
                 time.sleep(.4)
                 try:
-                    challenge = self.browser.find_element(
+                    self.browser.find_element(
                         By.XPATH, '//div[@data-test="challenge challenge-translate"]')
 
                     print("Found challenge-translate")
