@@ -21,7 +21,7 @@ The women and the men are smiling.,Ābri valī līrisi.
 The birds and the fathers are happy.,Hontesse kepī kirini issi.
 "a boy, a girl","taoba, riña"
 She is my mom.,Ñuha muña issa.
-a happy man,kirine vala
+a happy man,vala kirine
 He is my dad.,Ñuha kepa issa.
 a happy woman,ābra kirine
 He is a man.,Vala issa.
@@ -30,7 +30,7 @@ The father is a man.,Kepa vala issa.
 The man is a father.,Vala kepa issa.
 My mother is happy.,Ñuha muña kirine issa.
 The mother is a woman.,Muña ābra issa.
-my happy father,ñuha kepa kirine
+my happy father,ñuha kirine kepa
 The knight is singing.,Azantys vāedas.
 a good bird,sȳz hontes
 The woman is singing.,Ābra vāedas.
@@ -47,8 +47,8 @@ I am a man.,Vala iksan.
 My good father is smiling.,Ñuha sȳz kepa līris.
 You are a mother.,Muña iksā.
 The boy is happy.,Taoba kirine issa.
-my mother,ñuha muña
-the happy girl,kirine riña
+my mother,muña ñuha
+the happy girl,riña kirine
 She is a woman.,Ābra issa.
 The boy is sleeping.,Taoba ēdrus.
 My mother is sweating.,Ñuha muña nages.
@@ -4595,3 +4595,50 @@ A woman is admiring those boats.,Ābra kōdra lōgra majaqsa.
 This girl is good.,Bisa riña sȳz issa.
 The guests are sleeping there.,Zentyssy konīr ēdrusi.
 We are men.,Vali iksi.
+A bird is singing.,Hontes vāedas.
+The boy is good.,Taoba sȳz issa.
+The woman is sleeping.,Ābra ēdrus.
+I am a father.,Kepa iksan.
+You are a father.,Kepa iksā.
+My dad is singing.,Ñuha kepa vāedas.
+The girl is good.,Riña sȳz issa.
+They are girls.,Riñi issi.
+The men are happy.,Vali kirini issi.
+The girls are happy.,Riñi kirini issi.
+You all are happy.,Kirini iksāt.
+The girls are sweating.,Riñi nagesi.
+My boys are happy.,Ñuhi taobi kirini issi.
+The birds are happy.,Hontesse kirini issi.
+They are sleeping.,Ēdrusi.
+The good knights are smiling.,Sȳri azantyssy līrisi.
+The woman is sweating.,Ābra nages.
+The knight is a man.,Azantys vala issa.
+It is a bird.,Hontes issa.
+We are boys.,Taobi iksi.
+You all are boys.,Taobi iksāt.
+The girls are singing.,Riñi vāedis.
+My fathers are sweating.,Ñuhi kepi nagesi.
+They are birds.,Hontesse issi.
+The knight is sweating.,Azantys nages.
+I am a boy.,Taoba iksan.
+The woman is a knight.,Ābra azantys issa.
+The women are singing.,Ābri vāedis.
+My mothers are sweating.,Ñuhi muñi nagesi.
+We are good mothers.,Sȳri muñi iksi.
+The girl and the woman are happy.,Riña ābrā kirini issi.
+The men and the women are singing.,Vali ābrī vāedis.
+my happy mother,ñuha kirine muña
+The happy mother is smiling.,Kirine muña līris.
+The good boy is smiling.,Sȳz taoba līris.
+You are a good boy.,Sȳz taoba iksā.
+You all are knights.,Azantyssy iksāt.
+You all are women.,Ābri iksāt.
+The knights are sweating.,Azantyssy nagesi.
+The women are sweating.,Ābri nagesi.
+Happy men are sleeping.,Kirini vali ēdrusi.
+The fathers and mothers are good.,Kepi muñī sȳri issi.
+The girl and the boy are smiling.,Riña taobā līrisi.
+He is a boy.,Taoba issa.
+the happy father,kepa kirine
+The happy bird is sleeping.,Kirine hontes ēdrus.
+You all are good fathers.,Sȳri kepi iksāt.

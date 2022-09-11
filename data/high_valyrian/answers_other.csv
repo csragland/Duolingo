@@ -11,7 +11,7 @@ Write “boy” in High Valyrian (n),taoba
 Write “men” in High Valyrian (n),vali
 Azantyssy ___. (f),iksi
 ___ issi. (f),Vali
-Ābri ___. (f),nagesi
+Ābri ___. (f),nagesi,vāedis,ēdrusi
 Sȳri azantyssy ___. (f),nagesi
 ___ vāedis. (f),Kepi
 Write “mother” in High Valyrian (n),muña
@@ -43,7 +43,7 @@ Taoba riñe ___? (f),jorrāelza
 Ābre ___. (f),rȳban
 Which one of these is “sword”? (s),korze
 ___ ñuha korze issa? (f),Kesy
-___ azantyssy issi. (f),Bisi
+___ azantyssy issi. (f),Bisi,Sȳri
 Kesi ñuhi ___ issi? (f),korzi
 ___ ñuha muña issa. (f),Bony
 ___ korzi issi. (f),Kesi
@@ -366,3 +366,9 @@ Write “sheep” in High Valyrian (n),bianor
 Which one of these is “men”? (s),vali
 Which one of these is “boys”? (s),taobi
 Which one of these is “women”? (s),ābri
+Which one of these is “bird”? (s),hontes
+Which one of these is “knight”? (s),azantys
+Sȳri hontesse ___. (f),ēdrusi
+___ taobi ēdrusi. (f),Sȳri
+Riñi ___. (f),līrisi
+Ñuhi muñi ___. (f),līrisi

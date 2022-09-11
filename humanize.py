@@ -126,8 +126,8 @@ def add_typos(str, difficulty):
         word = original_word
 
         # skip the "all" in "you all"
-        if word == 'all' and i > 0 and split[i - 1] == 'you':
-            continue
+        # if word == 'all' and i > 0 and split[i - 1] == 'you':
+        #     continue
 
         if word == 'issa' and np.random.random() < 0.0644:
             word = 'issi'

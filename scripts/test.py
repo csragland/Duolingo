@@ -50,7 +50,7 @@ def main(session):
 
     session.browser.get("https://www.duolingo.com/learn")
 
-    session.log_in('odeeogbfrpysdkgxbj@bvhrs.com', 'PZrmkxbamu3eUA9') 
+    session.log_in('odeeogbfrpysdkgxbj@bvhrs.com', 'PZrmkxbamu3eUA9')
 
     while not session.is_on_homepage():
         time.sleep(2)
