@@ -4,7 +4,7 @@ import random
 import humanize
 from data_storage import DataStorage
 
-# from selenium import webdriver
+from selenium import webdriver
 import undetected_chromedriver as uc
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -17,9 +17,12 @@ class Duolingo (object):
             self,
             learning_language,
             known_language='english',
+            covert=False,
             humanize=False):
-        self.browser = uc.Chrome()
-        # self.browser = webdriver.Safari()
+        if covert:
+            self.browser = uc.Chrome()
+        else:
+            self.browser = webdriver.Safari()
         self.data = DataStorage(learning_language)
 
         self.LEARNING_LANGUAGE = learning_language
