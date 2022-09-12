@@ -70,7 +70,7 @@ def human_multiple_choice(skill_level, course_percentage):
 
     skill_level = float(skill_level) / 5
 
-    difficulty =  .85 + .05 * course_percentage + .05 * skill_level
+    difficulty =  .92 + .03 * course_percentage + .03 * skill_level
     get_correct = np.random.random() < difficulty
 
     time_to_answer = get_wait_time(2 * difficulty, minimum_feasible_time, 0, probability_pause, 2)
