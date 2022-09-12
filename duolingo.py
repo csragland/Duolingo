@@ -67,7 +67,10 @@ class Duolingo (object):
         self.click(skip, 'skip')
 
     def go_next(self, special=False):
-        next_button = self.browser.find_element(By.XPATH, '//button[@data-test="player-next"]')
+        next_button = WebDriverWait(
+            self.browser, 1).until(
+            EC.presence_of_element_located(
+                (By.XPATH, '//button[@data-test="player-next"]')))
         if next_button.text == "Learn more":
             raise WebDriverException('This is a fake next button')
         if not special:
@@ -78,7 +81,10 @@ class Duolingo (object):
 
     def use_keyboard(self):
         try:
-            button = self.browser.find_element(By.XPATH, '//button[@data-test="player-toggle-keyboard"]')
+            button = WebDriverWait(
+                self.browser, 2).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//button[@data-test="player-toggle-keyboard"]')))
 
             text = button.text.strip().lower()
             if text == "use keyboard" or text == "make harder":
