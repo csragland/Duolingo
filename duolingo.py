@@ -63,26 +63,25 @@ class Duolingo (object):
             self.browser, 2).until(
             EC.presence_of_element_located(
                 (By.XPATH, '//button[@data-test="player-skip"]')))
+        print("SKIPPING")
         self.click(skip, 'skip')
 
-    def go_next(self):
-        print("Going next")
-        next_button = WebDriverWait(
-            self.browser, 2).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, 'button[data-test="player-next"][aria-disabled="false"]')))
+    def go_next(self, special=False):
+        next_button = self.browser.find_element(By.XPATH, '//button[@data-test="player-next"]')
         if next_button.text == "Learn more":
             raise WebDriverException('This is a fake next button')
-        self.click(next_button, 'next')
+        if not special:
+            self.click(next_button, 'next')
+        else:
+            self.click(next_button, 'next')
+            self.click(next_button, 'next')
 
     def use_keyboard(self):
         try:
-            button = WebDriverWait(
-                self.browser, 1).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, '//button[@data-test="player-toggle-keyboard"]')))
+            button = self.browser.find_element(By.XPATH, '//button[@data-test="player-toggle-keyboard"]')
 
-            if button.text == "Use keyboard" or button.text == "Make harder":
+            text = button.text.strip().lower()
+            if text == "use keyboard" or text == "make harder":
                 self.click(button)
         except WebDriverException:
             pass
@@ -116,8 +115,8 @@ class Duolingo (object):
 
     def will_be_finished(self, skill):
         try:
-            level_text = skill.find_element(By.CSS_SELECTOR, 'div._1m77f').text
-            if level_text == 'Legendary Level':
+            level_text = skill.find_element(By.CSS_SELECTOR, 'div._1m77f').text.strip().lower()
+            if level_text == 'legendary level':
                 return True
 
             # Level 4/6
@@ -197,28 +196,24 @@ class Duolingo (object):
     def click(self, element, element_type=''):
         if self.HUMANIZE:
             if element_type == '':
-                print('normal')
-                time.sleep(humanize.get_wait_time(2.3, 1))
+                time.sleep(humanize.get_wait_time(1.7, .7, .4))
             elif element_type == 'next':
-                print('next')
                 time.sleep(humanize.get_wait_time(.4, .2, .1))
             elif element_type == 'skip':
-                print('skip')
                 time.sleep(humanize.get_wait_time(5,2, 2.9))
             elif element_type == 'spam':
-                print('spam')
                 time.sleep(humanize.get_wait_time(1.6, .8, .5))
+            elif element_type == 'enter':
+                time.sleep(humanize.get_wait_time(1.4, .5, .1))
             else:
-                time.sleep(humanize.get_wait_time(3, 1))
+                time.sleep(humanize.get_wait_time(1.7, .5))
         element.click()
 
     def submit_translation_answer(self, answer, is_known_language, input_field, skill_level, course_percentage, skip_humanize):
         if not self.HUMANIZE:
             input_field.send_keys(answer)
-            print("ENTER")
             input_field.send_keys(Keys.RETURN)
         else:
-            print(answer)
             processed_answer, wait_time = humanize.human_sentence_translation(
                 answer, is_known_language, skill_level, course_percentage)
             if skip_humanize:
@@ -226,12 +221,10 @@ class Duolingo (object):
                 wait_time += 1.7
             print(processed_answer, wait_time)
             time.sleep(wait_time)
-            print("typing")
             input_field.send_keys(processed_answer)
-            print("ENTER")
             input_field.send_keys(Keys.RETURN)
 
-    def try_submit_mc_answer(self, choices, prompt, skill_level, course_percentage):
+    def try_submit_mc_answer(self, choices, prompt, skill_level, course_percentage, challenge_type):
         answer = None
         for choice in choices:
             if choice.text in self.data.other_dictionary[prompt]:
@@ -240,13 +233,17 @@ class Duolingo (object):
         if answer:
             choose_correctly = True
             if self.HUMANIZE:
-                choose_correctly, wait_time = humanize.human_multiple_choice(skill_level, course_percentage)
+                if challenge_type == 'select':
+                    choose_correctly = True
+                    wait_time = .05
+                else:
+                    choose_correctly, wait_time = humanize.human_multiple_choice(skill_level, course_percentage)
                 time.sleep(wait_time)
             if not choose_correctly:
                 print("GUESSING")
-                self.click(random.choice(choices))
+                self.click(random.choice(choices), 'enter')
             else:
-                self.click(answer)
+                self.click(answer, 'enter')
         else:
             self.get_misc_answer(prompt)
 
@@ -321,12 +318,12 @@ class Duolingo (object):
             choices = self.browser.find_elements(
                 By.XPATH, '//span[@class="HaQTI"]')
 
-            self.try_submit_mc_answer(choices, prompt, skill_level, course_percentage)
+            self.try_submit_mc_answer(choices, prompt, skill_level, course_percentage, 'select')
 
         else:
             self.get_misc_answer(prompt)
 
-        self.go_next()
+        self.go_next(self.HUMANIZE)
 
     def challenge_form(self, skill_level, course_percentage):
         prompt = self.browser.find_element(
@@ -337,12 +334,12 @@ class Duolingo (object):
             choices = self.browser.find_elements(
                 By.XPATH, '//div[@data-test="challenge-judge-text"]')
 
-            self.try_submit_mc_answer(choices, prompt, skill_level, course_percentage)
+            self.try_submit_mc_answer(choices, prompt, skill_level, course_percentage, 'form')
 
         else:
             self.get_misc_answer(prompt)
 
-        self.go_next()
+        self.go_next(self.HUMANIZE)
 
     def challenge_name(self, skill_level, course_percentage, wrong_count):
         prompt = self.browser.find_element(
@@ -391,7 +388,6 @@ class Duolingo (object):
                     self.browser.find_element(
                         By.XPATH, '//div[@data-test="challenge challenge-translate"]')
 
-                    print("Found challenge-translate")
                     self.challenge_translate(level, course_percentage, wrong_count)
                     continue
                 except WebDriverException:
