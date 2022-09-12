@@ -50,7 +50,7 @@ def main(session):
 
     session.browser.get("https://www.duolingo.com/learn")
 
-    session.log_in('odeeogbfrpysdkgxbj@bvhrs.com', 'PZrmkxbamu3eUA9') 
+    session.log_in('gmhhzz1@gmail.com', 'gamansk01000101')
 
     while not session.is_on_homepage():
         time.sleep(2)
@@ -70,8 +70,8 @@ def main(session):
     session.save()
     print("Sun is getting real low")
 
+session = Duolingo('high_valyrian', covert=True, humanize=True)
 if __name__ == '__main__':
-    session = Duolingo('high_valyrian', covert=True, humanize=True)
     try:
         main(session)
     except BaseException as error:

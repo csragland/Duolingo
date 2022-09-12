@@ -43,10 +43,13 @@ def human_sentence_translation(answer, known_language, skill_level, course_perce
     mean2 = num_characters * 0.1
     stdev2 = max(0.5, np.random.normal(1, 1))
 
-    d1 = np.random.normal(mean1, stdev1)
-    d2 = np.random.normal(mean2, stdev2)
+    mean_time = -1
+    while mean_time < 1.5 * minimum_feasible_time:
 
-    mean_time = d1 + d2 * (2 - difficulty)
+        d1 = np.random.normal(mean1, stdev1)
+        d2 = np.random.normal(mean2, stdev2)
+
+        mean_time = d1 + d2 * (2 - difficulty)
 
     time_to_answer = get_wait_time(mean_time, minimum_feasible_time, 0, probability_pause, 2)
 
@@ -86,15 +89,13 @@ def get_wait_time(mean_time, minimum_feasible_time, stdev_time=0, probability_pa
             stdev_time = max(0.5, np.random.normal(1, 1))
 
         time_to_answer = max(time_to_answer, np.random.normal(minimum_feasible_time + mean_time, stdev_time))
-        num_tries -= 1
-
+        
         if (num_tries <= 0):
             time_to_answer = 1.1 * minimum_feasible_time
-            break
+        
+        num_tries -= 1
 
-    pause = np.random.random() < probability_pause
-
-    if (pause):
+    if (np.random.random() < probability_pause):
         pause_time = pause_factor * mean_time * np.random.random()
         time_to_answer += pause_time
 

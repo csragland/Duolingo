@@ -71,7 +71,7 @@ def main(session):
     print("Sun is getting real low")
 
 if __name__ == '__main__':
-    session = Duolingo('high_valyrian', covert=True, humanize=True)
+    session = Duolingo('high_valyrian', covert=True, humanize=False)
     try:
         main(session)
     except BaseException as error:
