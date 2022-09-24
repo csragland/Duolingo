@@ -1,7 +1,7 @@
 import csv
 
 class DataStorage (object):
-    def __init__ (self, learning_language, known_language="english"):
+    def __init__ (self, learning_language, known_language="english", includes_bubble_names=False):
         self.LEARNING_LANGUAGE = learning_language
         self.KNOWN_LANGUAGE = known_language
 

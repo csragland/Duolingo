@@ -58,6 +58,10 @@ class Duolingo (object):
             By.XPATH, '//button[@data-test="register-button"]')
         self.click(login_button)
 
+    def clear_notifcations(self):
+        self.browser.find_element(By.CSS_SELECTOR, 'button[data-test="notification-drawer-no-thanks-button"]').click()
+        time.sleep(.5)
+
     def skip(self):
         skip = WebDriverWait(
             self.browser, 2).until(
@@ -497,7 +501,9 @@ class Duolingo (object):
                 pass
             time.sleep(.5)
 
-    def do_next_skill(self):
+    def do_next_skill(self, skill_number=None, advance=True):
+        if skill_number is None:
+            skill_level = self.data.skill_level
         skills = WebDriverWait(
             self.browser, 20).until(
             EC.presence_of_all_elements_located(
@@ -506,11 +512,11 @@ class Duolingo (object):
 
         # Scroll to appoximate location of the skill in order for its
         # information to fully load
-        course_percentage = self.data.current_skill / num_skills
+        course_percentage = skill_number / num_skills
         scroll = "window.scrollTo(0, document.body.scrollHeight * " + str(course_percentage) + ");"
         self.browser.execute_script(scroll)
 
-        skill = skills[self.data.current_skill]
+        skill = skills[skill_number]
 
         skill_level = self.skill_level(skill)
 
@@ -528,9 +534,9 @@ class Duolingo (object):
         self.click(start_button)
         self.complete_skill(skill_level, course_percentage)
 
-        if increment:
+        if increment and advance:
             self.data.update_current_skill(
-                (self.data.current_skill + 1) % num_skills)
+                (skill_number + 1) % num_skills)
 
         num_new_sentences = current_sentences - len(self.data.sentence_dictionary)
 
