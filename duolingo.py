@@ -159,7 +159,7 @@ class Duolingo (object):
         except WebDriverException:
             toggle_dropdown = skill.find_element(By.CSS_SELECTOR, 'div._2eeKH')
             toggle_dropdown.send_keys(Keys.RETURN)
-            time.sleep(.1)
+            time.sleep(.3)
 
         start_skill = skill.find_element(
             By.CSS_SELECTOR, 'a[data-test="start-button"]')
@@ -223,7 +223,7 @@ class Duolingo (object):
             processed_answer, wait_time = humanize.human_sentence_translation(
                 answer, is_known_language, skill_level, course_percentage)
             if skip_humanize:
-                processed_answer = humanize.normalize(answer)
+                processed_answer = answer
                 wait_time += 1.7
             print(processed_answer, wait_time)
             time.sleep(wait_time)

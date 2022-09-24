@@ -10,7 +10,7 @@ from selenium.common.exceptions import WebDriverException
 
 # Hards stops: 955-11 (lesson), 12:30-1:30 (bubble), 3:23-4:03 (lesson), 6:10-8:24 (bubble), 11:02 (bubble)
 # Minute, second, hard=false
-STOPS = [(9, 55, True), (12, 30, False), (15,23, True), (18, 10, False), (23, 2, False)]
+STOPS = [(15,00, False), (19, 58, False)]
 
 def get_next_stop(now):
     for stop in STOPS:
