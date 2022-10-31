@@ -335,6 +335,24 @@ class Duolingo (object):
 
         self.go_next(self.HUMANIZE)
 
+    def challenge_assist(self, skill_level, course_percentage):
+        prompt = self.browser.find_element(
+            By.XPATH, '//h1[@data-test="challenge-header"]').text
+        prompt += " (a)"
+
+        if prompt in self.data.other_dictionary:
+            choices = self.browser.find_elements(
+                By.XPATH, '//div[@data-test="challenge-judge-text"]')
+
+
+            self.try_submit_mc_answer(choices, prompt, skill_level, course_percentage, 'assist')
+
+        else:
+            self.get_misc_answer(prompt)
+
+        self.go_next()
+
+
     def challenge_form(self, skill_level, course_percentage):
         prompt = self.browser.find_element(
             By.XPATH, '//div[@class="_2SfAl _2Hg6H"]').get_attribute('data-prompt')
@@ -378,13 +396,24 @@ class Duolingo (object):
 
         self.go_next()
 
-    def challenge_partial_reverse_translate(self, skill_level, skill_no):
+    def challenge_partial_reverse_translate(self):
         input_field = self.browser.find_element(
-            By.XPATH, '//span[@spellcheck="False"]')
+            By.XPATH, '//span[@spellcheck="false"]')
         answer = self.browser.find_element(
             By.XPATH, '//span[@class="_1yM6s _1vqO5"]').text
         input_field.send_keys(answer)
         input_field.send_keys(Keys.RETURN)
+
+    def challenge_match(self):
+        body = self.browser.find_element(By.XPATH, "//body")
+        n = len(self.browser.find_elements(By.CLASS_NAME, "_35eLX"))
+        keys = [Keys.NUMPAD0,Keys.NUMPAD1,Keys.NUMPAD2,Keys.NUMPAD3,Keys.NUMPAD4,Keys.NUMPAD5,Keys.NUMPAD6,Keys.NUMPAD7,Keys.NUMPAD8,Keys.NUMPAD9]
+        for i in range(1, n//2 + 1):
+            for j in list(range(n//2 + 1, n)) + [0]:
+                body.send_keys(keys[i])
+                body.send_keys(keys[j])
+                time.sleep(1)
+        self.go_next()
 
     def complete_skill(self, level, course_percentage):
 
@@ -437,6 +466,24 @@ class Duolingo (object):
                         By.XPATH, '//div[@data-test="challenge challenge-completeReverseTranslation"]')
                     self.challenge_translate(level, course_percentage, wrong_count, True)
                     continue
+                except WebDriverException:
+                    pass
+
+                try:
+                    challenge = self.browser.find_element(By.XPATH, '//div[@data-test="challenge challenge-match"]')
+                    self.challenge_match()
+                except WebDriverException:
+                    pass
+
+                try:
+                    challenge = self.browser.find_element(By.XPATH, '//div[@data-test="challenge challenge-assist"]')
+                    self.challenge_assist(level, course_percentage)
+                except WebDriverException:
+                    pass
+
+                try:
+                    challenge = self.browser.find_element(By.XPATH, '//div[@data-test="challenge challenge-partialReverseTranslate"]')
+                    self.challenge_partial_reverse_translate()
                 except WebDriverException:
                     pass
 
@@ -502,8 +549,9 @@ class Duolingo (object):
             time.sleep(.5)
 
     def do_next_skill(self, skill_number=None, advance=True):
+        print(skill_number)
         if skill_number is None:
-            skill_level = self.data.skill_level
+            skill_number = self.data.current_skill
         skills = WebDriverWait(
             self.browser, 20).until(
             EC.presence_of_all_elements_located(
@@ -516,6 +564,7 @@ class Duolingo (object):
         scroll = "window.scrollTo(0, document.body.scrollHeight * " + str(course_percentage) + ");"
         self.browser.execute_script(scroll)
 
+        print(skill_number)
         skill = skills[skill_number]
 
         skill_level = self.skill_level(skill)

@@ -10,7 +10,7 @@ from selenium.common.exceptions import WebDriverException
 
 # Hards stops: 955-11 (lesson), 12:30-1:30 (bubble), 3:23-4:03 (lesson), 6:10-8:24 (bubble), 11:02 (bubble)
 # Minute, second, hard=false
-STOPS = [(15,00, False), (19, 58, False)]
+#STOPS = [(15,00, False), (19, 58, False)]
 
 def get_next_stop(now):
     for stop in STOPS:
@@ -46,7 +46,7 @@ def try_intro():
             pass
 
 def main(session):
-    end_time, is_hard_cutoff = get_end_time()
+    #end_time, is_hard_cutoff = get_end_time()
 
     session.browser.get("https://www.duolingo.com/learn")
 
@@ -56,13 +56,15 @@ def main(session):
         time.sleep(2)
 
     bubble_completed = False
-    while datetime.now() < end_time or (not is_hard_cutoff and not bubble_completed):
+    #while datetime.now() < end_time or (not is_hard_cutoff and not bubble_completed):
+    while True:
         xp_gained, sentences_mined, bubble_completed = session.do_next_skill()
         if xp_gained <= 0:
             break
 
     checkpoint = 0
-    while datetime.now() < end_time:
+    #while datetime.now() < end_time:
+    while True:
         session.browser.get("https://www.duolingo.com/checkpoint/hv/" + str(checkpoint) + "/practice")
         session.complete_skill(5, .33 * checkpoint)
         checkpoint = (checkpoint + 1) % 3
@@ -70,7 +72,7 @@ def main(session):
     session.save()
     print("Sun is getting real low")
 
-session = Duolingo('high_valyrian', covert=True, humanize=True)
+session = Duolingo('german', covert=False, humanize=False)
 if __name__ == '__main__':
     try:
         main(session)

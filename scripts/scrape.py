@@ -6,7 +6,7 @@ sys.path.append('../duolingo')
 from duolingo import Duolingo
 from selenium.common.exceptions import WebDriverException
 
-def try_intro():
+def try_intro(session):
     if session.data.current_skill == 0:
         try:
             session.start_intro()
@@ -25,7 +25,7 @@ def main(session):
     bubble_completed = False
     empty_handed_count = 0
     current_total_mined = 0
-    skill_no = 4
+    skill_no = 0
     while empty_handed_count < 10:
         passes = 0
         while passes < 6:
@@ -43,7 +43,7 @@ def main(session):
     session.save()
     print("You've stripped the mine!")
 
-session = Duolingo('czech', covert=False, humanize=False)
+session = Duolingo('german', covert=False, humanize=False)
 if __name__ == '__main__':
     try:
         main(session)
